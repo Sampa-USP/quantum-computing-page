@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batalha Naval Quântica</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid black;
+            position: relative;
+            margin: 10px;
+        }
+        #controls {
+            margin-top: 20px;
+        }
+        .backend-list {
+            margin-top: 20px;
+        }
+        .backend-list img {
+            width: 100px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .board-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Batalha Naval Quântica</h1>
+    <div>
+        <label for="playerName">Nome do Jogador:</label>
+        <input type="text" id="playerName" placeholder="Digite seu nome">
+        <button onclick="setPlayerName()">Confirmar Nome</button>
+    </div>
+    <h2 id="playerDisplay"></h2>
+    <button onclick="initializeGame()">Iniciar Jogo</button>
+    <br><br>
+    <div class="board-container">
+        <div>
+            <h2>Seu Tabuleiro</h2>
+            <canvas id="playerCanvas" width="500" height="500"></canvas>
+        </div>
+        <div>
+            <h2>Tabuleiro do Computador Quântico</h2>
+            <canvas id="computerCanvas" width="500" height="500"></canvas>
+        </div>
+    </div>
+    <div id="controls">
+        <input type="text" id="playerMove" placeholder="Digite a coordenada (ex: A5)">
+        <button onclick="playerAttack()">Atacar</button>
+    </div>
+    
+    <div class="backend-list">
+        <h2>Escolha o Backend AWS:</h2>
+        <img src="static/aws_sv1.png" alt="AWS SV1" onclick="selectBackend('sv1')">
+        <img src="static/aws_dm1.png" alt="AWS DM1" onclick="selectBackend('dm1')">
+        <img src="static/aws_tn1.png" alt="AWS TN1" onclick="selectBackend('tn1')">
+    </div>
+
+    <script>
+        let selectedBackend = "sv1";
+        let playerName = localStorage.getItem("playerName") || "";
+
+        function selectBackend(backend) {
+            selectedBackend = backend;
+            alert("Backend selecionado: " + backend);
+        }
+
+        function setPlayerName() {
+            playerName = document.getElementById("playerName").value;
+            localStorage.setItem("playerName", playerName);
+            document.getElementById("playerDisplay").innerText = "Jogador: " + playerName;
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            if (playerName) {
+                document.getElementById("playerDisplay").innerText = "Jogador: " + playerName;
+                document.getElementById("playerName").value = playerName;
+            }
+        });
+
+        const playerCanvas = document.getElementById("playerCanvas");
+        const playerCtx = playerCanvas.getContext("2d");
+        const computerCanvas = document.getElementById("computerCanvas");
+        const computerCtx = computerCanvas.getContext("2d");
+
+        function drawGrid(ctx) {
+            ctx.clearRect(0, 0, playerCanvas.width, playerCanvas.height);
+            ctx.strokeStyle = "black";
+            for (let i = 0; i <= 10; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * 50, 0);
+                ctx.lineTo(i * 50, 500);
+                ctx.moveTo(0, i * 50);
+                ctx.lineTo(500, i * 50);
+                ctx.stroke();
+            }
+        }
+
+        function drawShip(ctx, x, y) {
+            ctx.fillStyle = "gray";
+            ctx.fillRect(x * 50, y * 50, 50, 50);
+        }
+
+        function drawAttack(ctx, x, y, hit) {
+            ctx.fillStyle = hit ? "red" : "blue";
+            ctx.beginPath();
+            ctx.arc(x * 50 + 25, y * 50 + 25, 10, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function playerAttack() {
+            const coord = document.getElementById("playerMove").value;
+            fetch('/player_attack', {
+                method: 'POST',
+                body: JSON.stringify({ coord, backend: selectedBackend }),
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.player.message);
+                drawAttack(computerCtx, data.player.x, data.player.y, data.player.status === "hit");
+
+                if (data.quantum.status === "hit" || data.quantum.status === "miss") {
+                    drawAttack(playerCtx, data.quantum.x, data.quantum.y, data.quantum.status === "hit");
+                    alert(data.quantum.message);
+                }
+            });
+        }
+
+        function initializeGame() {
+            fetch('/initialize_game')
+                .then(response => response.json())
+                .then(data => {
+                    drawGrid(playerCtx);
+                    drawGrid(computerCtx);
+                    data.player_board.forEach((row, y) => {
+                        row.forEach((cell, x) => {
+                            if (cell === "S") drawShip(playerCtx, x, y);
+                        });
+                    });
+                    alert("Jogo iniciado! Os navios foram posicionados e o computador quântico gerou as jogadas.");
+                });
+        }
+
+        drawGrid(playerCtx);
+        drawGrid(computerCtx);
+    </script>
+</body>
+</html>

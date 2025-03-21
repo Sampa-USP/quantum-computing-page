@@ -3,7 +3,7 @@ from braket.circuits import Circuit
 from boto3 import Session
 
 # Criando sessão AWS
-boto_session = Session(profile_name='default')
+boto_session = Session(profile_name='bracket')
 aws_session = AwsSession(boto_session=boto_session)
 
 # Selecionando o dispositivo AWS Braket

@@ -46,10 +46,15 @@ class Game:
     def player_attack(self, coord):
         """ Processa o ataque do jogador no tabuleiro do computador quântico """
         logging.debug(f"🎯 Jogador atacando coordenada: {coord}")
-        row = ord(coord[0].upper()) - ord("A")  # Converte letra para índice numérico
-        col = int(coord[1:])  # Converte número da string para inteiro
 
-        # 🔹 Verifica se o ataque está dentro dos limites
+        try:
+            row = ord(coord[0].upper()) - ord("A")  # Converte letra para índice numérico
+            col = int(coord[1:]) - 1  # Converte número da string para inteiro e ajusta para índice (0-9)
+        except (IndexError, ValueError):
+            logging.warning(f"⚠ Coordenada inválida: {coord}")
+            return {"status": "error", "message": "Coordenada inválida"}
+
+        # Verifica se está dentro dos limites
         if not (0 <= row < 10 and 0 <= col < 10):
             logging.warning(f"⚠ Coordenada fora do tabuleiro: {coord}")
             return {"status": "error", "message": "Ataque fora do tabuleiro"}
@@ -57,16 +62,12 @@ class Game:
         if self.quantum_board[row][col] == "S":
             self.quantum_board[row][col] = "X"
             logging.debug(f"💥 Jogador acertou um navio em ({row}, {col})!")
-        else:
-            self.quantum_board[row][col] = "O"
-            logging.debug(f"❌ Jogador errou em ({row}, {col}).")
+            return {"status": "hit", "x": col, "y": row, "message": "Acertou um navio!"}
+        
+        self.quantum_board[row][col] = "O"
+        logging.debug(f"❌ Jogador errou em ({row}, {col}).")
+        return {"status": "miss", "x": col, "y": row, "message": "Errou!"}
 
-        # 🔹 Imprime o tabuleiro atualizado do computador quântico após o ataque do jogador
-        logging.debug("🛠 Tabuleiro do Computador Quântico atualizado:")
-        for row in self.quantum_board:
-            logging.debug(" ".join(row))
-
-        return {"status": "hit" if self.quantum_board[row][col] == "X" else "miss", "x": col, "y": row}
 
     def setup_boards(self):
         """ Posiciona barcos aleatoriamente nos dois tabuleiros """
